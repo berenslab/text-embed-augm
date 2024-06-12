@@ -1,0 +1,191 @@
+manual_keywords_groups = [
+    ###### ADVERSARIAL
+    [
+        ("adversarial", 60),
+        ("adversarial attack", 121),
+        ("adversarial attacks", 106),
+        ("adversarial defense", 50),
+        ("adversarial examples", 196),
+        ("adversarial learning", 93),
+        ("adversarial machine learning", 54),
+        ("adversarial robustness", 241),
+        ("adversarial training", 217),
+    ],
+    ###### TRANSFORMERS
+    [
+        ("attention", 183),
+        ("attention mechanism", 53),
+        ("transformer", 340),
+        ("transformers", 261),
+        ("self-attention", 73),
+        ("bert", 77),
+    ],
+    ###### AUTOENCODERS
+    [
+        ("autoencoder", 63),
+        ("autoencoders", 52),
+        ("vae", 71),
+        ("variational autoencoder", 93),
+        ("variational autoencoders", 83),
+        ("variational inference", 194),
+    ],
+    [("bayesian inference", 60)],
+    [("causal discovery", 53), ("causal inference", 104), ("causality", 80)],
+    [("clustering", 116)],
+    [("compression", 121), ("model compression", 135)],
+    ###### COMPUTER VISION
+    [
+        ("computer vision", 411),
+        ("object detection", 125),
+    ],
+    [("autonomous driving", 55)],
+    ###### CL
+    [("contrastive learning", 344)],
+    ###### CNNs
+    [
+        ("convolutional neural network", 76),
+        ("convolutional neural networks", 130),
+        ("cnn", 88),
+    ],
+    [("data augmentation", 190)],
+    ###### DEEP LEARNING THEORY
+    [  # ('deep learning', 1950),
+        ("deep learning theory", 98),
+        # ("deep neural network", 51),
+        # ("deep neural networks", 137),
+    ],
+    ###### DIFFUSION MODELS
+    [("diffusion", 69), ("diffusion model", 167), ("diffusion models", 280)],
+    [("disentanglement", 93)],
+    [("dynamical systems", 68)],
+    ###### EXPLAINABLE AI
+    [("explainability", 131), ("explainable ai", 92)],
+    [("interpretability", 356)],
+    [("fairness", 182)],
+    [("federated learning", 485)],
+    [("game theory", 62)],
+    ###### GANS
+    [
+        ("generative adversarial network", 70),
+        ("generative adversarial networks", 190),
+        ("gan", 168),
+        ("gans", 91),
+    ],
+    ###### GENERATIVE MODELS
+    [
+        ("generative model", 182),
+        ("generative modeling", 69),
+        ("generative models", 390),
+        ("deep generative models", 77),
+        ("image generation", 60),
+        ("text generation", 66),
+    ],
+    [("generalization", 413), ("domain generalization", 124)],
+    ###### GRAPH
+    [
+        ("graph", 48),
+        ("graph neural network", 230),
+        ("graph neural networks", 563),
+        ("graph representation learning", 85),
+        ("gnn", 64),
+        ("geometric deep learning", 51),
+    ],
+    # [('implicit bias', 56)],
+    [("information theory", 106)],
+    # [('learning theory', 83)],
+    ###### LLMS
+    [
+        ("llm", 80),
+        ("large language model", 210),
+        ("large language models", 447),
+        ("knowledge distillation", 211),
+        ("prompting", 48),
+    ],
+    [
+        ("natural language processing", 433),
+        ("nlp", 166),
+        ("language model", 105),
+        ("language models", 151),
+        ("language modeling", 85),
+        ("machine translation", 91),
+        ("question answering", 59),
+        ("reasoning", 85),
+    ],
+    [("catastrophic forgetting", 89)],
+    ###### META-LEARNING
+    [("meta learning", 121), ("meta-learning", 301)],
+    [("network pruning", 48), ("pruning", 140)],
+    [("neural architecture search", 180)],
+    [("neuroscience", 82)],
+    [("optimal transport", 165)],
+    ###### OPTIMIZATION
+    [
+        ("stochastic gradient descent", 77),
+        ("stochastic optimization", 56),
+        ("sgd", 86),
+        ("optimization", 410),
+        ("non-convex optimization", 66),
+        ("convex optimization", 57),
+        ("gradient descent", 86),
+        ("combinatorial optimization", 69),
+        ("bayesian optimization", 64),
+    ],
+    ###### OUT-OF-DISTRIBUTION
+    [
+        ("out-of-distribution", 53),
+        ("out-of-distribution detection", 92),
+        ("out-of-distribution generalization", 59),
+        ("distribution shift", 96),
+    ],
+    ###### RNNs
+    [
+        ("rnn", 65),
+        ("recurrent neural network", 48),
+        ("recurrent neural networks", 114),
+        ("lstm", 66),
+    ],
+    [("regularization", 185), ("implicit regularization", 54)],
+    ###### RL
+    [("reinforcement learning", 1608)],
+    [("active learning", 131)],
+    [("model-based reinforcement learning", 111)],
+    [("multi-agent reinforcement learning", 162)],
+    [("multi-task learning", 141)],
+    [("multimodal learning", 58)],
+    [("inverse reinforcement learning", 63)],
+    [("hierarchical reinforcement learning", 53)],
+    [("imitation learning", 171)],
+    [("offline reinforcement learning", 150), ("offline rl", 55)],
+    [("online learning", 80)],
+    [
+        ("continual learning", 339),
+        ("lifelong learning", 82),
+    ],  # ask Dmitry/check: do you think they can be grouped into one keyword?
+    ### NOT RL
+    [
+        ("in-context learning", 105),
+        ("zero-shot learning", 56),
+    ],  # ask Dmitry/check: do you think they can be grouped into one keyword?
+    [("few-shot learning", 218)],
+    [("robotics", 103)],
+    [("robustness", 411)],
+    [("self-supervised learning", 473)],
+    [("semantic segmentation", 92)],
+    [("semi-supervised learning", 253)],
+    [("spiking neural networks", 55)],
+    [("time series", 129), ("time series forecasting", 54)],
+    ###### TRANSFER LEARNING
+    [
+        ("transfer learning", 388),
+        ("domain adaptation", 176),
+        ("fine-tuning", 90),
+    ],
+    ###### UNCERTAINTY
+    [
+        ("uncertainty", 108),
+        ("uncertainty estimation", 95),
+        ("uncertainty quantification", 76),
+    ],
+    [("vision transformer", 98), ("vision transformers", 51)],
+    [("vision-language models", 48), ("clip", 70)],
+]
