@@ -1,6 +1,7 @@
 #import datasets
 import numpy as np
 import torch
+import random
 from sklearn.model_selection import train_test_split
 from sklearn.neighbors import KNeighborsClassifier
 from tqdm.notebook import tqdm
@@ -10,14 +11,21 @@ from text_embeddings_src.metrics import knn_accuracy, knn_recall, logistic_accur
 from text_embeddings_src.embeddings import generate_embeddings
 from text_embeddings_src.dim_red import run_tsne_simple
 
-#def knn_accuracy(X, y, k=10):
-#    X_train, X_test, y_train, y_test = train_test_split(
-#        X, y, test_size=0.1, stratify=y, random_state=42
-#    )  #
-#
-#    neigh = KNeighborsClassifier(n_neighbors=k, metric="cosine")
-#    neigh.fit(X_train, y_train)
-#    return neigh.score(X_test, y_test)
+
+def fix_all_seeds(seed=42):
+    # Set the random seed for PyTorch
+    torch.manual_seed(seed)
+    torch.cuda.manual_seed_all(seed)  ## this one is new
+    ## Set the seed for generating random numbers on all GPUs.
+    torch.backends.cudnn.benchmark = False
+    torch.backends.cudnn.deterministic = True
+    # torch.use_deterministic_algorithms(True) ## this one I don't use but don't remember why
+
+    # Set the random seed for NumPy
+    np.random.seed(seed)
+
+    # Set the random seed
+    random.seed(seed)
 
 
 # pooling functions
@@ -64,6 +72,7 @@ def train_loop(
     eval_metric= "knn",
     return_seventh=False,
     return_embeddings= False,
+    return_model= False,
 ):
     assert optimized_rep in [
         "av",
@@ -214,11 +223,15 @@ def train_loop(
 
 
         accuracies.append(acc)
+        
+    # returns
     if return_embeddings==True:
         if return_seventh == True:
             return losses, accuracies, embedding_cls, embedding_sep, embedding_av, embedding_7th
         if return_seventh == False:
             return losses, accuracies, embedding_cls, embedding_sep, embedding_av
+    elif return_model == True:
+        return losses, accuracies, model
     else:
         return losses, accuracies
 
@@ -696,115 +709,6 @@ def train_loop_eval_test_loss(model, train_loader, test_loader, device, tokenize
     return losses_train, losses_test, knn_accuracies_train, knn_accuracies_test
 
 
-## DEPRECATED, NOW FUNCTIONALITY IN train_loop
-# def train_loop_logistic(model, loader, device, titles_abstracts_together, tokenizer, label_mask, labels_acc, optimized_rep= "av", n_epochs=1, lr=2e-5, return_seventh=False):
-    
-#     assert optimized_rep in ["av", "cls", "sep", "7th"], "Not valid `optimized_rep`. Choose from ['av', 'cls', 'sep', '7th']."
-
-#     model.to(device)
-
-#     # define layers to be used in multiple-negatives-ranking
-#     cos_sim = torch.nn.CosineSimilarity()
-#     loss_func = torch.nn.CrossEntropyLoss()
-#     scale = 20.0  # we multiply similarity score by this scale value
-#     # move layers to device
-#     cos_sim.to(device)
-#     loss_func.to(device)
-
-#     # initialize Adam optimizer
-#     optim = torch.optim.Adam(model.parameters(), lr=lr)
-
-#     # setup warmup for first ~10% of steps
-#     total_steps = len(loader) * n_epochs 
-#     warmup_steps = int(0.1 * len(loader))
-#     scheduler = get_linear_schedule_with_warmup(
-#         optim,
-#         num_warmup_steps=warmup_steps,
-#         num_training_steps=total_steps,
-#     )
-
-#     losses = np.empty((n_epochs, len(loader)))
-#     if return_seventh == True:
-#         accuracies =  np.empty((n_epochs, 4))
-#     else:
-#         accuracies =  np.empty((n_epochs, 3))
-#     for epoch in range(n_epochs):
-#         model.train()  # make sure model is in training mode
-#         # initialize the dataloader loop with tqdm (tqdm == progress bar)
-#         loop = tqdm(loader, leave=True)
-#         for i_batch, batch in enumerate(loop):
-#             # zero all gradients on each new step
-#             optim.zero_grad()
-#             # prepare batches and move all to the active device
-#             anchor_ids = batch[0][0].to(device)     # this are all anchor abstracts from the batch,len(anchor_ids)= len(batch)
-#             anchor_mask = batch[0][1].to(device)
-#             pos_ids = batch[1][0].to(device)       # this each positive pair from each anchor, all in one array, also len(batch)
-#             pos_mask = batch[1][1].to(device)
-#             # extract token embeddings from BERT
-#             a = model(anchor_ids, attention_mask=anchor_mask)[0]  # all token embeddings
-#             p = model(pos_ids, attention_mask=pos_mask)[0]
-            
-#             # get the mean pooled vectors
-#             if optimized_rep == "av":
-#                 a = mean_pool(a, anchor_mask)
-#                 p = mean_pool(p, pos_mask)
-                
-#             elif optimized_rep == "cls":
-#                 a = cls_pool(a, anchor_mask)
-#                 p = cls_pool(p, pos_mask)
-                
-#             elif optimized_rep == "sep":
-#                 a = sep_pool(a, anchor_mask)
-#                 p = sep_pool(p, pos_mask)
-                
-#             elif optimized_rep == "7th":
-#                 a = seventh_pool(a, anchor_mask)
-#                 p = seventh_pool(p, pos_mask)
-                
-#             # calculate the cosine similarities
-#             scores = torch.stack(
-#                 [cos_sim(a_i.reshape(1, a_i.shape[0]), p) for a_i in a]
-#             )
-#             # get label(s) - we could define this before if confident
-#             # of consistent batch sizes
-#             labels = torch.tensor(
-#                 range(len(scores)), dtype=torch.long, device=scores.device
-#             )  # I think that the labels are just the label of which pair it is. 0 for the first pair, 1 for the second...
-#             # my guess is that they are used in the loss to know which of the cosine similarities should be high
-#             # and which low
-
-#             # and now calculate the loss
-#             loss = loss_func(scores * scale, labels)   # Nik does not know what the labels nor the scale are
-#                                                        # I also still not know why you need the scale
-#             losses[epoch, i_batch] = loss.item()
-
-#             # using loss, calculate gradients and then optimize
-#             loss.backward()
-#             optim.step()
-#             # update learning rate scheduler
-#             scheduler.step()
-#             # update the TDQM progress bar
-#             loop.set_description(f"Epoch {epoch}")
-#             loop.set_postfix(loss=loss.item())
-            
-#         ## evaluation
-#         if return_seventh == True:
-#             embedding_cls, embedding_sep, embedding_av, embedding_7th = generate_embeddings(
-#                 titles_abstracts_together, tokenizer, model, device, batch_size=256, return_seventh=True
-#             )
-    
-#             acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
-            
-#         else:
-#             embedding_cls, embedding_sep, embedding_av = generate_embeddings(
-#                 titles_abstracts_together, tokenizer, model, device, batch_size=256
-#             )
-    
-#             acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
-
-#         accuracies[epoch,:]= acc
-        
-#     return losses, accuracies
 
 
 def train_loop_with_projection_head(
@@ -978,3 +882,149 @@ def train_loop_with_projection_head(
             return losses, accuracies, embedding_cls, embedding_sep, embedding_av
     else:
         return losses, accuracies
+    
+
+
+
+def train_loop_train_test_split(
+    model,
+    loader,
+    device,
+    tokenizer,
+    abstracts_eval_train,
+    abstracts_eval_test,
+    labels_eval_train,
+    labels_eval_test,
+    optimized_rep="av",
+    n_epochs=1,
+    lr=2e-5,
+):
+    assert optimized_rep in [
+        "av",
+        "cls",
+        "sep",
+        "7th",
+    ], "Not valid `optimized_rep`. Choose from ['av', 'cls', 'sep', '7th']."
+
+    model.to(device)
+
+    # define layers to be used in multiple-negatives-ranking
+    cos_sim = torch.nn.CosineSimilarity()
+    loss_func = torch.nn.CrossEntropyLoss()
+    scale = 20.0  # we multiply similarity score by this scale value, it is the inverse of the temperature
+    # move layers to device
+    cos_sim.to(device)
+    loss_func.to(device)
+
+    # initialize Adam optimizer
+    optim = torch.optim.Adam(model.parameters(), lr=lr)
+
+    # setup warmup for first ~10% of steps
+    total_steps = len(loader) * n_epochs
+    warmup_steps = int(0.1 * len(loader))
+    scheduler = get_linear_schedule_with_warmup(
+        optim,
+        num_warmup_steps=warmup_steps,
+        num_training_steps=total_steps,
+    )
+
+    losses = np.empty((n_epochs, len(loader)))
+    accuracies = []
+    for epoch in range(n_epochs):
+        model.train()  # make sure model is in training mode
+        # initialize the dataloader loop with tqdm (tqdm == progress bar)
+        loop = tqdm(loader, leave=True)
+        for i_batch, batch in enumerate(loop):
+            # zero all gradients on each new step
+            optim.zero_grad()
+            # prepare batches and move all to the active device
+            anchor_ids = batch[0][0].to(
+                device
+            )  # this are all anchor abstracts from the batch,len(anchor_ids)= len(batch)
+            anchor_mask = batch[0][1].to(device)
+            pos_ids = batch[1][0].to(
+                device
+            )  # this each positive pair from each anchor, all in one array, also len(batch)
+            pos_mask = batch[1][1].to(device)
+            # extract token embeddings from BERT
+            a = model(anchor_ids, attention_mask=anchor_mask)[
+                0
+            ]  # all token embeddings
+            p = model(pos_ids, attention_mask=pos_mask)[0]
+
+            # get the mean pooled vectors  -- put all of these ifs into a pool function (wraper) to which I pass, a, p the masks and the optimized rep
+            if optimized_rep == "av":
+                a = mean_pool(a, anchor_mask)
+                p = mean_pool(p, pos_mask)
+
+            elif optimized_rep == "cls":
+                a = cls_pool(a, anchor_mask)
+                p = cls_pool(p, pos_mask)
+
+            elif optimized_rep == "sep":
+                a = sep_pool(a, anchor_mask)
+                p = sep_pool(p, pos_mask)
+
+            elif optimized_rep == "7th":
+                a = seventh_pool(a, anchor_mask)
+                p = seventh_pool(p, pos_mask)
+
+            # calculate the cosine similarities
+            scores = torch.stack(
+                [cos_sim(a_i.reshape(1, a_i.shape[0]), p) for a_i in a]
+            )
+            # get label(s) - we could define this before if confident
+            # of consistent batch sizes
+            labels = torch.tensor(
+                range(len(scores)), dtype=torch.long, device=scores.device
+            )  # I think that the labels are just the label of which pair it is. 0 for the first pair, 1 for the second...
+            # my guess is that they are used in the loss to know which of the cosine similarities should be high
+            # and which low
+
+            # and now calculate the loss
+            loss = loss_func(scores * scale, labels)
+            losses[epoch, i_batch] = loss.item()
+
+            # using loss, calculate gradients and then optimize
+            loss.backward()
+            optim.step()
+            # update learning rate scheduler
+            scheduler.step()
+            # update the TDQM progress bar
+            loop.set_description(f"Epoch {epoch}")
+            loop.set_postfix(loss=loss.item())
+
+        ## evaluation of the unseen test set for each epoch 
+        (
+            embedding_cls_train,
+            embedding_sep_train,
+            embedding_av_train,
+        ) = generate_embeddings(
+            abstracts_eval_train,
+            tokenizer,
+            model,
+            device,
+            batch_size=256,
+        )
+
+        (
+            embedding_cls_test,
+            embedding_sep_test,
+            embedding_av_test,
+        ) = generate_embeddings(
+            abstracts_eval_test,
+            tokenizer,
+            model,
+            device,
+            batch_size=256,
+        )
+
+        knn = KNeighborsClassifier(
+            n_neighbors=10, algorithm="brute", n_jobs=-1, metric="euclidean"
+        )
+        knn = knn.fit(embedding_av_train, labels_eval_train)
+        acc = knn.score(embedding_av_test, labels_eval_test)
+
+        accuracies.append(acc)
+
+    return losses, accuracies
