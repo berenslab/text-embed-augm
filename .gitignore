@@ -1,7 +1,9 @@
 # Files
 data
 results
-
+text_embeddings_src/knn_accuracy_lena.py
+scripts/updated_dataset/print-results.ipynb
+scripts/updated_dataset/extra_experiments
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
