@@ -1,3 +1,4 @@
+from abc import abstractmethod
 import datasets
 import numpy as np
 import torch
@@ -1360,7 +1361,27 @@ def train_loop_train_test_split(
 
 
 
-class EmbeddingOnlyModel(torch.nn.Module):
+
+
+
+class MyModel(torch.nn.Module, ABC):
+
+    @abstractmethod
+    def get_a():
+        pass
+
+    def print_STATE():
+        print('a')
+
+class My2Mode(MyModel):
+    pass
+
+
+
+
+
+
+class EmbeddingOnlyModel(MyModel):
     """Create a new model with only the embedding layer.
     Valid function for both the layer and the module (04/09/2024)
     
