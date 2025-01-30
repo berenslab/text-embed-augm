@@ -1,5 +1,6 @@
 import numpy as np
 from sklearn.neighbors import KNeighborsClassifier
+from sklearn.decomposition import PCA
 from sklearn.neighbors import NearestNeighbors
 from sklearn.model_selection import train_test_split
 from sklearn.pipeline import make_pipeline
@@ -52,6 +53,42 @@ def knn_accuracy(embeddings, true_labels, test_size=0.1, k = 10, rs=42, set_nump
 
     
     return knn_accuracy
+
+
+
+def knn_accuracy_whitening_scores(X, y, rs=42):
+    """Calculates kNN accuracy of raw, centered and whitened data.
+    It calculates it for to distance metrics: cosine and euclidean.
+
+    Parameters
+    ----------
+    X : list of array-like
+        List with the different datasets for which to calculate the kNN accuracy.
+    y : array-like
+        Array with labels (colors).
+    rs : int, default=42
+        Random seed.
+
+    Returns
+    -------
+    scores : array of floats of shape (3,2)
+        Array with the kNN accuracy for the different distance metrics and versions of the data.
+
+    """
+
+    n = X.shape[0]
+    Xcentered = X - np.mean(X, axis=0)
+    Xwhitened = PCA(whiten=True).fit_transform(X)
+
+    scores = np.zeros((3, 2))
+
+    for i, X_to_use in enumerate([X, Xcentered, Xwhitened]):
+        for j, metric in enumerate(["euclidean", "cosine"]):
+
+            acc = knn_accuracy(X_to_use, y, metric=metric)
+            scores[i, j] = acc
+
+    return scores
 
 
 

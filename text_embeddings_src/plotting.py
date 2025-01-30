@@ -349,3 +349,23 @@ def plot_label_tags(tsne, colors, legend, x_lim, y_lim, ax=None, middle_value = 
         else:
             ax.text(x[i], y[i], sorted_labels_right[i], c='black', fontsize=fontsize, ha='left', bbox=dict(facecolor=colr,edgecolor='None', alpha=alpha_box, boxstyle="Round, pad=0.075, rounding_size=0.3"))
             ax.plot([x[i],center_cluster_coordinates_right.x[i]],[y[i],center_cluster_coordinates_right.y[i]], c=colr, linewidth=0.4, clip_on=False)
+
+
+
+def plot_squared_brackets(ax, x, y, text, width, height):
+    text_kwargs = dict(
+        fontsize=6,
+        ha="center",
+        va="bottom",
+    )
+    ax.text(x, y - 0.03, text, **text_kwargs)
+
+    lw = 0.35
+    color = "k"
+    ax.plot([x - width / 2, x + width / 2], [y, y], lw=lw, color=color)
+    ax.plot(
+        [x - width / 2, x - width / 2], [y, y + height], lw=lw, color=color
+    )
+    ax.plot(
+        [x + width / 2, x + width / 2], [y, y + height], lw=lw, color=color
+    )

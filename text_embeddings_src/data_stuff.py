@@ -450,6 +450,110 @@ class MultOverlappingSentencesLabelPairDataset(torch.utils.data.Dataset):
         return len(self.abs_sentences)
 
 
+class SameSentencePairDataset(torch.utils.data.Dataset):
+    """ Dropout based augmentation (like SimCSE).
+    Only the __getitem__ method changes with respect to the MultOverlappingSentencesPairDataset class.
+    """
+
+    def __init__(
+        self,
+        abstracts,
+        tokenizer,
+        device,
+        n_cons_sntcs=2,
+        tokenizer_kwargs=None,
+        seed=42,
+    ):
+        self.abstracts = abstracts
+        self.rng = np.random.default_rng(seed)
+        self.n_cons_sntcs = n_cons_sntcs
+
+        # sentence map
+        self.sentences_map = []
+        for i, sentences in enumerate(
+            abstracts.map(lambda a: a.split("."))
+        ):  # loop through abstracts
+            for j in range(
+                len(sentences) - (self.n_cons_sntcs - 1)
+            ):  # loop through sentences inside abstract
+                if (len(sentences[j]) >= 100) & (
+                    len(sentences[j]) <= 250
+                ):  # length conditions
+                    cons_sentences_pack = ""
+                    cons_sentence_counts = 0
+                    for k in range(
+                        len(sentences) - j
+                    ):  # loop through sentences to add them
+                        if (len(sentences[j + k]) >= 100) & (
+                            len(sentences[j + k]) <= 250
+                        ):  # length conditions
+                            cons_sentences_pack += (
+                                sentences[j + k].strip() + ". "
+                            )
+                            cons_sentence_counts += 1
+
+                        if (
+                            cons_sentence_counts == self.n_cons_sntcs
+                        ):  # check if we have already enough sentences
+                            self.sentences_map.append((cons_sentences_pack, i))
+                            break
+
+        if tokenizer_kwargs is None:
+            tokenizer_kwargs = dict(
+                max_length=512,
+                padding=True,
+                truncation=True,
+                return_tensors="pt",
+            )
+
+        self.sentences_tok = tokenizer(
+            [x for x, _ in self.sentences_map], **tokenizer_kwargs
+        ).to(device)
+
+        # we group the flat sentences by the original abstract they
+        # come from.  Then we can check whether we have enough
+        # sentences and append the abstracts with at least two
+        # sentences to our list.
+        sentences_and_toks = zip(
+            self.sentences_map,
+            self.sentences_tok["input_ids"],
+            self.sentences_tok["attention_mask"],
+        )
+        self.abs_sentences = []
+        self.abs_toks = []
+        self.abs_amsk = []
+        for key, group in itertools.groupby(
+            sentences_and_toks,
+            key=lambda kvtoksetc: kvtoksetc[0][1],
+        ):
+            grp = list(group)
+            if len(grp) < 2:
+                continue  # not enough sentences
+            else:
+                self.abs_sentences.append([kv[0] for kv in grp])
+                self.abs_toks.append([x[1] for x in grp])
+                self.abs_amsk.append([x[2] for x in grp])
+
+        # we now have `self.abs_toks`, which is a list of lists,
+        # where the first list is the abstracts and the second is the
+        # token representation of the sentences within the given
+        # abstract.
+
+    def __getitem__(self, idx):
+        abstract = self.abs_toks[idx]
+        amask = self.abs_amsk[idx]
+        i1 = self.rng.choice(
+            len(abstract), size=None, replace=False
+        )  # we randomly only one sentence from the abstract (size=None samples one element)
+        return (abstract[i1], amask[i1]), (
+            abstract[i1],
+            amask[i1],
+        )  # we return the same sentence and its mask twice
+
+    def __len__(self):
+        return len(self.abs_sentences)
+    
+
 class AbstractSplitDataset(torch.utils.data.Dataset):
     def __init__(
         self,
