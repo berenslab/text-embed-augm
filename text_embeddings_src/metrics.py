@@ -58,20 +58,24 @@ def knn_acc(embeddings, labels, test_embeddings = None, test_labels = None,  tes
 
 def knn_accuracy(embeddings, labels, test_embeddings = None, test_labels = None, test_size=0.1, k = 10, rs=42, metric="euclidean"):
     """
-    Expand knn_acc function to also accept several datasets (with the same labels) to evaluate, passed as a list of datasets [X1,X2,...,XN].
+    Expand knn_acc function to also accept several representations of a dataset (i.e., with the same labels) to evaluate, passed as a list of datasets [X1,X2,...,XN].
     It returns the accuracies in one list: for a single dataset as one single value, for several datasets as several values in the same list.
     """
 
     if not isinstance(embeddings, list):
         embeddings = [embeddings]
+        test_embeddings = [test_embeddings]
+    else:
+        if test_embeddings is not None:
+            assert len(embeddings) == len(test_embeddings), "Train and test splits don't have the same number of representations to evaluate."
         
-    knn_accuracy = []
-    for embed in embeddings:
-        knn_accuracy.append(knn_acc(embed, labels, test_embeddings = test_embeddings, test_labels = test_labels, test_size=test_size, k = k, rs=rs, metric=metric))
+    knn_accuracy_values = []
+    for i, embed in enumerate(embeddings):
+        knn_accuracy_values.append(knn_acc(embed, labels, test_embeddings = test_embeddings[i], test_labels = test_labels, test_size=test_size, k = k, rs=rs, metric=metric))
         
-    knn_accuracy= np.array(knn_accuracy)
+    knn_accuracy_values= np.array(knn_accuracy_values)
     
-    return knn_accuracy
+    return knn_accuracy_values
 
 
 
@@ -167,18 +171,23 @@ def lin_acc(embeddings, labels, test_embeddings = None, test_labels = None,  tes
     return linear_accuracy_score
 
 
-def linear_accuracy(embeddings, labels, test_embeddings = None, test_labels = None, test_size=0.1, rs=42):
+
+def linear_accuracy(embeddings, labels, test_embeddings = None, test_labels = None, test_size=0.1, k = 10, rs=42, metric="euclidean"):
     """
-    Expand lin_acc function to also accept several datasets (with the same labels) to evaluate, passed as a list of datasets [X1,X2,...,XN].
+    Expand lin_acc function to also accept several representations of a dataset (i.e., with the same labels) to evaluate, passed as a list of datasets [X1,X2,...,XN].
     It returns the accuracies in one list: for a single dataset as one single value, for several datasets as several values in the same list.
     """
-
+    
     if not isinstance(embeddings, list):
         embeddings = [embeddings]
+        test_embeddings = [test_embeddings]
+    else:
+        if test_embeddings is not None:
+            assert len(embeddings) == len(test_embeddings), "Train and test splits don't have the same number of representations to evaluate."
         
     lin_accuracy = []
-    for embed in embeddings:
-        lin_accuracy.append(lin_acc(embed, labels, test_embeddings = test_embeddings, test_labels = test_labels, test_size=test_size, rs=rs))
+    for i, embed in enumerate(embeddings):
+        lin_accuracy.append(lin_acc(embed, labels, test_embeddings = test_embeddings[i], test_labels = test_labels, test_size=test_size, rs=rs))
         
     lin_accuracy= np.array(lin_accuracy)
     
