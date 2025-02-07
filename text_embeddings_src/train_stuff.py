@@ -67,7 +67,7 @@ def train_loop(
     eval_train_labels,
     eval_test_data = None,  # None when eval is on MTEB or no train/test split
     eval_test_labels =None,
-    eval_every_epochs =  1, #int, {0,1} 
+    eval_every_epochs =  True, #bool, {True, False} 
     eval_every_batches = 0, # int, 0 would be like none
     eval_function = KNNEval,
     pooler = mean_pool,
@@ -84,6 +84,9 @@ def train_loop(
     
     if eval_rep is None:
         eval_rep = pooler.sent_rep
+
+    if eval_every_batches != 0: # if this happens, eval happens after every X batch and after the last batch
+        eval_every_epochs = False # therefore, we set the evaluation after the full epoch to 0 to not evaluate twice after the last batch of the epoch
 
 
     ## training set up
@@ -165,8 +168,11 @@ def train_loop(
             ## evaluation
             if eval_every_batches != 0:
                 if (i_batch % eval_every_batches == 0) | (
-                    i_batch == len(loader) - 1
-                ):
+                    i_batch == len(loader)-1
+                ):  
+                    # add batch number to the results
+                    training_eval_results["batch"].append(i_batch+len(loader)*epoch)
+
                     # path with batch number for saving MTEB results
                     mteb_saving_name = Path(f"results_epoch_{epoch}_batch_{i_batch}")
 
@@ -183,29 +189,46 @@ def train_loop(
                         path_to_save= mteb_saving_path / mteb_saving_name,
                     )
                     [training_eval_results[k].append(v) for k, v in eval_results.items()]
+                    wrapped_model.model.train()
 
-                    
+
+
         if eval_every_epochs != 0:
+            print("eval_epoch", epoch)
+            
+            # add epoch number to the results
+            training_eval_results["epoch"].append(epoch)
+
             # same code as above for the batches
             mteb_saving_name = Path(f"results_epoch_{epoch}")
 
             eval_results = eval_function( # some of these are needed for knn eval and some others for mteb
-                wrapped_model = wrapped_model,
-                device = device,
-                dataset = eval_train_data,
-                labels = eval_train_labels,
-                test_dataset = eval_test_data,
-                test_labels = eval_test_labels,
-                eval_rep= eval_rep, 
-                dist_metric = dist_metric,
-                tasks = mteb_tasks,
-                path_to_save= mteb_saving_path / mteb_saving_name,
+                    wrapped_model = wrapped_model,
+                    device = device,
+                    dataset = eval_train_data,
+                    labels = eval_train_labels,
+                    test_dataset = eval_test_data,
+                    test_labels = eval_test_labels,
+                    eval_rep= eval_rep, 
+                    dist_metric = dist_metric,
+                    tasks = mteb_tasks,
+                    path_to_save= mteb_saving_path / mteb_saving_name,
             )
             [training_eval_results[k].append(v) for k, v in eval_results.items()]
+            wrapped_model.model.train()
+
 
 
     if (eval_every_epochs != 0) | (eval_every_batches != 0):
+        # convert results to dataframe
         df_training_eval_results = pd.DataFrame(training_eval_results)
+
+        # transform every knn/lin value from an array to a single number, if only one rep was evaluated (array([0.6]) --> 0.6)
+        if "knn" in training_eval_results.keys():
+            df_training_eval_results["knn"] = df_training_eval_results["knn"].apply(lambda x: x[0] if len(x) == 1 else x)
+        if "lin" in training_eval_results.keys():
+            df_training_eval_results["lin"] = df_training_eval_results["lin"].apply(lambda x: x[0] if len(x) == 1 else x)
+
         return losses, df_training_eval_results
     else:
         return losses

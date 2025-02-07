@@ -45,8 +45,6 @@ def generate_embeddings(abstracts, tokenizer, model, device, batch_size=256, ret
         dataset, batch_size=batch_size, #num_workers=10
     )
 
-    # new inference
-    #model.to(device)
 
     embedding_av  = []
     embedding_sep = []
