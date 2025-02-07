@@ -40,13 +40,11 @@ def knn_acc(embeddings, labels, test_embeddings = None, test_labels = None,  tes
     assert (
         not test_embeddings is None or test_labels is None
     ), "You did not pass a test set (so the data will be split in train/test sets), but you passed a test split for the labels."
-
-
-    random_state = np.random.seed(rs)
+    
 
     # create/assign test splits
     if test_embeddings is None:
-        X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=test_size, random_state = random_state)
+        X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=test_size, random_state = rs)
     else:
         X_train, X_test, y_train, y_test = embeddings, labels, test_embeddings, test_labels
 
@@ -108,7 +106,7 @@ def knn_accuracy_whitening_scores(X, y, rs=42):
 
     for j, metric in enumerate(["euclidean", "cosine"]):
 
-        acc = knn_accuracy([X, Xcentered, Xwhitened], y, metric=metric)
+        acc = knn_accuracy([X, Xcentered, Xwhitened], y, metric=metric, rs=rs)
         scores[:, j] = acc
 
     return scores
@@ -146,11 +144,9 @@ def lin_acc(embeddings, labels, test_embeddings = None, test_labels = None,  tes
     ), "You did not pass a test set (so the data will be split in train/test sets), but you passed a test split for the labels."
 
 
-    random_state = np.random.seed(rs)
-
     # create/assign test splits
     if test_embeddings is None:
-        X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=test_size, random_state = random_state)
+        X_train, X_test, y_train, y_test = train_test_split(embeddings, labels, test_size=test_size, random_state = rs)
     else:
         X_train, X_test, y_train, y_test = embeddings, labels, test_embeddings, test_labels
 
@@ -160,7 +156,7 @@ def lin_acc(embeddings, labels, test_embeddings = None, test_labels = None,  tes
                 penalty=None,
                 solver="saga",
                 tol=1e-2,
-                random_state=random_state,
+                random_state=rs,
                 n_jobs=-1,
                 max_iter=1000,
             ),
@@ -172,7 +168,7 @@ def lin_acc(embeddings, labels, test_embeddings = None, test_labels = None,  tes
 
 
 
-def linear_accuracy(embeddings, labels, test_embeddings = None, test_labels = None, test_size=0.1, k = 10, rs=42, metric="euclidean"):
+def linear_accuracy(embeddings, labels, test_embeddings = None, test_labels = None, test_size=0.1, rs=42):
     """
     Expand lin_acc function to also accept several representations of a dataset (i.e., with the same labels) to evaluate, passed as a list of datasets [X1,X2,...,XN].
     It returns the accuracies in one list: for a single dataset as one single value, for several datasets as several values in the same list.

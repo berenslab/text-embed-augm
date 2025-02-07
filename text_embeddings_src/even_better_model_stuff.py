@@ -114,7 +114,7 @@ class FineTunedHFModelWrapper(HFModelWrapper):
         pooling_model = models.Pooling(
             word_embedding_dimension=self.model.config.hidden_size,
             pooling_mode_cls_token=False,
-            pooling_mode_mean_tokens=True,
+            pooling_mode_mean_tokens=True,    # TODO: CHANGE POOLING JENACHDEM
             pooling_mode_max_tokens=False,
             pooling_mode_mean_sqrt_len_tokens=False,
         )

@@ -53,7 +53,7 @@ def KNNEval(*, wrapped_model, device, dataset, labels, test_dataset = None, test
                     rs=42, 
                     metric=dist_metric)
             
-    
+
     return {"knn":eval_results}
     
 
@@ -118,21 +118,15 @@ def MTEBEval(*, wrapped_model, tasks, path_to_save, **kwargs):
     # build evaluation
     mteb_results = evaluation.run(
             ST_wrapped_model,
-            output_folder= path_to_save) # during eval, results are also saved
+            output_folder= path_to_save, # during eval, results are also saved
+            overwrite_results= True, # default False, if False it skips the evaluation if results folder exists!
+            ) 
     
     
     # unwrap the dict into the dictionary in the way I want it
     dict_results = dict()
-    for key in np.sort(list(mteb_results.keys())):
-        task = key.split("/")[-1]
-        if "scores" in mteb_results[key].keys():
-            # pretrained mpnet
-            score = mteb_results[key]["scores"]["test"][0][
-                "main_score"
-            ]
-            dict_results[task] = score
-        else:
-            continue
+    for task in mteb_results:
+        dict_results[task.task_name] = task.scores["test"][0]["main_score"]
 
 
     return dict_results             
