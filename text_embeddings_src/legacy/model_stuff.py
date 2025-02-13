@@ -11,7 +11,7 @@ from tqdm.notebook import tqdm
 from transformers import AutoModel
 from transformers.optimization import get_linear_schedule_with_warmup
 from adapters import AutoAdapterModel
-from text_embeddings_src.legacy.metrics import knn_accuracy, linear_accuracy
+from text_embeddings_src.legacy.metrics import knn_accuracy, logistic_accuracy
 from text_embeddings_src.legacy.embeddings import generate_embeddings
 from text_embeddings_src.dim_red import run_tsne_simple
 
@@ -198,7 +198,7 @@ def train_loop(
                     labels_acc,
                 )
             elif eval_metric == "lin":
-                acc = linear_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
+                acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
     
 
         else:
@@ -223,7 +223,7 @@ def train_loop(
                     labels_acc,
                 )
             elif eval_metric == "lin":
-                acc = linear_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
+                acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
 
 
         accuracies.append(acc)
@@ -402,7 +402,7 @@ def train_loop_batches_eval(
                             labels_acc,
                         )
                     elif eval_metric == "lin":
-                        acc = linear_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
+                        acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
             
 
                 else:
@@ -427,7 +427,7 @@ def train_loop_batches_eval(
                             labels_acc,
                         )
                     elif eval_metric == "lin":
-                        acc = linear_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
+                        acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
 
 
                 accuracies.append(acc)
@@ -1069,7 +1069,7 @@ def train_loop_with_projection_head(
                     labels_acc,
                 )
             elif eval_metric == "lin":
-                acc = linear_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
+                acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask], embedding_7th[label_mask]], labels_acc)
     
 
         else:
@@ -1094,7 +1094,7 @@ def train_loop_with_projection_head(
                     labels_acc,
                 )
             elif eval_metric == "lin":
-                acc = linear_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
+                acc = logistic_accuracy([embedding_av[label_mask], embedding_cls[label_mask], embedding_sep[label_mask]], labels_acc)
 
 
         accuracies.append(acc)
@@ -1545,7 +1545,7 @@ def train_loop_embedding_layer(
                     labels_acc,
                 )
             elif eval_metric == "lin":
-                acc = linear_accuracy(
+                acc = logistic_accuracy(
                     [
                         embedding_av[label_mask],
                         embedding_cls[label_mask],
@@ -1577,7 +1577,7 @@ def train_loop_embedding_layer(
                     labels_acc,
                 )
             elif eval_metric == "lin":
-                acc = linear_accuracy(
+                acc = logistic_accuracy(
                     [
                         embedding_av[label_mask],
                         embedding_cls[label_mask],
