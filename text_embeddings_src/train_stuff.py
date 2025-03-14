@@ -27,7 +27,7 @@ def fix_all_seeds(seed=42):
 
 def poolerdecorator(name):
     """This function is a decorator. 
-    When you use the decorator above another function, you can assign to that function an attribute calle `.sent_rep` with value `name`.
+    When you use the decorator above another function, you can assign to that function an attribute called `.sent_rep` with value `name`.
     
     """
     def decorator(fun):
@@ -215,7 +215,7 @@ def train_loop(
                     path_to_save= mteb_saving_path / mteb_saving_name,
             )
             [training_eval_results[k].append(v) for k, v in eval_results.items()]
-            wrapped_model.model.train()
+            
 
 
 

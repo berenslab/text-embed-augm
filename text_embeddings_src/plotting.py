@@ -110,9 +110,9 @@ def plot_tsne_colors(
     alpha_grey = 0.6
     alpha_color = 0.7
 
-    # if plot_type == "subplot_2":
-    #     s_grey = 0.2
-    #     s_color = 0.2
+    if plot_type == "subplot_2":
+        s_grey = 0.5
+        s_color = 0.5
 
     if plot_type == "subplot_3":
         s_grey = 3

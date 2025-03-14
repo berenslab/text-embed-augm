@@ -13,10 +13,7 @@ from text_embeddings_src.embeddings import generate_embeddings, generate_embeddi
 # TODO: docstrings and comments
 
 class ModelWrapper(ABC):
-    """
-    I should always define a self.model
-    """
-    # Q?: Can I not do this to "enforce" a type of init?
+    # Inits should look like this
     def __init__(self, model, tokenizer):
         self.checkpoint = model.config.name_or_path
         self.model = model

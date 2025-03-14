@@ -879,59 +879,59 @@ def train_loop_modified_scale(
 
 
 
-class ModelWithProjectionHead(nn.Module):
-    def __init__(self, checkpoint, in_dim=768, feat_dim=128, hidden_dim=512):
-        super().__init__()
+# class ModelWithProjectionHead(nn.Module):
+#     def __init__(self, checkpoint, in_dim=768, feat_dim=128, hidden_dim=512):
+#         super().__init__()
 
-        self.in_dim = in_dim
-        self.feat_dim = feat_dim
-        self.hidden_dim = hidden_dim
+#         self.in_dim = in_dim
+#         self.feat_dim = feat_dim
+#         self.hidden_dim = hidden_dim
 
-        # Load Model with given checkpoint and extract its body
-        if checkpoint == "allenai/specter2_base":
-            self.model = AutoAdapterModel.from_pretrained(checkpoint)
-            # add adapter proximity
-            self.model.load_adapter(
-                "allenai/specter2",
-                source="hf",
-                load_as="specter2",
-                set_active=True,
-            )
-        else:
-            self.model = AutoModel.from_pretrained(
-                checkpoint
-            )  
+#         # Load Model with given checkpoint and extract its body
+#         if checkpoint == "allenai/specter2_base":
+#             self.model = AutoAdapterModel.from_pretrained(checkpoint)
+#             # add adapter proximity
+#             self.model.load_adapter(
+#                 "allenai/specter2",
+#                 source="hf",
+#                 load_as="specter2",
+#                 set_active=True,
+#             )
+#         else:
+#             self.model = AutoModel.from_pretrained(
+#                 checkpoint
+#             )  
 
-        # add projection head
-        self.projection_head = nn.Sequential(
-            nn.Linear(self.in_dim, self.hidden_dim),
-            nn.ReLU(inplace=True),
-            nn.Linear(self.hidden_dim, self.feat_dim),
-        )
+#         # add projection head
+#         self.projection_head = nn.Sequential(
+#             nn.Linear(self.in_dim, self.hidden_dim),
+#             nn.ReLU(inplace=True),
+#             nn.Linear(self.hidden_dim, self.feat_dim),
+#         )
 
-    def forward(self, input_ids=None, attention_mask=None, optimized_rep="av"):
-        # Extract outputs from the body
-        outputs = self.model(
-            input_ids=input_ids, attention_mask=attention_mask
-        )[0]
+#     def forward(self, input_ids=None, attention_mask=None, optimized_rep="av"):
+#         # Extract outputs from the body
+#         outputs = self.model(
+#             input_ids=input_ids, attention_mask=attention_mask
+#         )[0]
 
-        # pooling
-        if optimized_rep == "av":
-            h = mean_pool(outputs, attention_mask)
+#         # pooling
+#         if optimized_rep == "av":
+#             h = mean_pool(outputs, attention_mask)
 
-        elif optimized_rep == "cls":
-            h = cls_pool(outputs, attention_mask)
+#         elif optimized_rep == "cls":
+#             h = cls_pool(outputs, attention_mask)
 
-        elif optimized_rep == "sep":
-            h = sep_pool(outputs, attention_mask)
+#         elif optimized_rep == "sep":
+#             h = sep_pool(outputs, attention_mask)
 
-        elif optimized_rep == "7th":
-            h = seventh_pool(outputs, attention_mask)
+#         elif optimized_rep == "7th":
+#             h = seventh_pool(outputs, attention_mask)
 
-        # Add custom layers
-        z = self.projection_head(h)  # .view(-1,768)
+#         # Add custom layers
+#         z = self.projection_head(h)  # .view(-1,768)
 
-        return z, h
+#         return z, h
 
 
 def train_loop_with_projection_head(
