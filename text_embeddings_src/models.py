@@ -180,7 +180,7 @@ class ModelWithProjectionHeadWrapper(ModelWrapper):
         self.model : full model with the projection head
         self.backbone : model without the projection head
         """
-        self.checkpoint = model.config.name_or_path
+        self.checkpoint = model.backbone.config.name_or_path
         self.model = model
         self.tokenizer = tokenizer 
         self.backbone = model.backbone
