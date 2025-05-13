@@ -579,6 +579,8 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
         self.device=device
         self.cut_off = cut_off
 
+        self.mask_token_id = tokenizer.mask_token_id if hasattr(tokenizer, 'mask_token_id') else 103
+
         if tokenizer_kwargs is None:
             tokenizer_kwargs = dict(
                 max_length=512,
@@ -605,7 +607,7 @@ class MaskedAbstractDataset(torch.utils.data.Dataset):
         special_tokens_mask = self.abstracts_tok["special_tokens_mask"][idx]
 
         masked_token_value = (
-            torch.ones(abstract.size(), dtype=int, device=self.device) * 103
+            torch.ones(abstract.size(), dtype=int, device=self.device) * self.mask_token_id
         )
         real_abstract_length = int((special_tokens_mask == 0).sum())
 
@@ -661,6 +663,9 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
         self.n_cons_sntcs = n_cons_sntcs
         self.device = device
         self.fraction_masked = fraction_masked
+
+        self.mask_token_id = tokenizer.mask_token_id if hasattr(tokenizer, 'mask_token_id') else 103
+
 
         # sentence map
         self.sentences_map = []
@@ -755,7 +760,7 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
 
         # sentences 1
         masked_token_value_1 = (
-            torch.ones(sentences_1.size(), dtype=int, device=self.device) * 103
+            torch.ones(sentences_1.size(), dtype=int, device=self.device) * self.mask_token_id
         )
         real_sentences_length_1 = int((special_tokens_mask_1 == 0).sum())
 
@@ -776,7 +781,7 @@ class MaskedMultOverlappingSentencesPairDataset(torch.utils.data.Dataset):
 
         # sentences 2
         masked_token_value_2 = (
-            torch.ones(sentences_2.size(), dtype=int, device=self.device) * 103
+            torch.ones(sentences_2.size(), dtype=int, device=self.device) * self.mask_token_id
         )
         real_sentences_length_2 = int((special_tokens_mask_2 == 0).sum())
 
