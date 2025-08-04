@@ -1,6 +1,13 @@
 # Files
 data
-results
+results/*
+!results/figures/
+results/figures/*
+!results/figures/updated_dataset/
+results/figures/updated_dataset/*
+!results/figures/updated_dataset/final_figures/
+results/figures/updated_dataset/final_figures/*
+!results/figures/updated_dataset/final_figures/last_version/
 text_embeddings_src/knn_accuracy_lena.py
 scripts/print-results.ipynb
 scripts/extra_experiments
