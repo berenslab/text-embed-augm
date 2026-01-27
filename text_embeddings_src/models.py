@@ -1,4 +1,7 @@
 from abc import ABC, abstractmethod
+import gc
+
+from tqdm import tqdm
 import torch
 import torch.nn as nn
 import os
@@ -8,17 +11,21 @@ from transformers import AutoModel, AutoTokenizer
 from adapters import AutoAdapterModel
 from sentence_transformers import SentenceTransformer, models
 
-from text_embeddings_src.embeddings import generate_embeddings, generate_embeddings_embed_layer
+from text_embeddings_src.embeddings import (
+    generate_embeddings,
+    generate_embeddings_embed_layer,
+)
+from text_embeddings_src.train_stuff import mean_pool, cls_pool, sep_pool
 
 # TODO: docstrings and comments
+
 
 class ModelWrapper(ABC):
     # Inits should look like this
     def __init__(self, model, tokenizer):
         self.checkpoint = model.config.name_or_path
         self.model = model
-        self.tokenizer = tokenizer  
-
+        self.tokenizer = tokenizer
 
     @abstractmethod
     def encode_dataset(self, data, device):
@@ -43,16 +50,110 @@ class ModelWrapper(ABC):
         ...
         # return output
         pass
-    
+
+
+class CustomModelMTEBWrapper:
+    def __init__(self, model, tokenizer, layer_number, eval_rep="av"):
+        """Wrapper for MTEB for when not passing a Sentece Transformer but a custom model
+        Note: documentation on MTEB page was wrong and I had to find out the parameters that encode() takes by trial and seeing the error messages.
+        """
+
+        # self.checkpoint = model.config.name_or_path
+        self.model = model
+        self.tokenizer = tokenizer
+        self.layer_number = layer_number
+        poolers = {
+            "av": mean_pool,
+            "sep": sep_pool,
+            "cls": cls_pool,
+        }
+        self.pooler = poolers[eval_rep]
+
+        # TODO: define a model_data_card, otherwise you get the warning below:
+        # WARNING:mteb.models.overview:Failed to extract metadata from model:
+        # 'CustomModelMTEBWrapper' object has no attribute 'model_card_data'.
+        # Upgrading to sentence-transformers v3.0.0 or above is recommended.
+
+    def encode(
+        self,
+        inputs,  #: DataLoader[BatchedInput],
+        # task_metadata,  #: TaskMetadata,
+        # hf_split: str,
+        # hf_subset: str,
+        prompt_name,  # : PromptType | None = None,
+        **kwargs,
+        # batch_size
+    ) -> np.ndarray:
+        # From MTEB code
+        """Encodes the given sentences using the encoder.
+
+        Args:
+            inputs: The inputs to encode. (list of str)
+            task_metadata: The name of the task.
+            hf_subset: The subset of the dataset.
+            hf_split: The split of the dataset.
+            prompt_type: The prompt type to use.
+            **kwargs: Additional arguments to pass to the encoder.
+
+        Returns:
+            The encoded sentences.
+        """
+        # print(len(inputs))
+        # print(type(inputs))
+        # print(kwargs.keys())
+        # print(kwargs.values())
+        # print(kwargs["batch_size"])
+
+        device = "cuda" if torch.cuda.is_available() else "cpu"
+
+        # preprocess the input
+        inputs = self.tokenizer(
+            inputs,
+            padding=True,
+            truncation=True,
+            return_tensors="pt",
+            max_length=512,
+        )
+
+        batch_size = 32 if "batch_size" not in kwargs.keys() else kwargs["batch_size"]
+
+        dataset = datasets.Dataset.from_dict(inputs)
+        dataset.set_format(type="torch", output_all_columns=True)
+        loader = torch.utils.data.DataLoader(
+            dataset,
+            batch_size=batch_size,
+            num_workers=2, #4,  # 8 or 16,
+            pin_memory=True,  # Important for GPU transfer speed
+            persistent_workers=True,  # Keeps workers alive between epochs
+        )
+
+        self.model.to(device)
+        self.model.eval()
+        embeddings = []
+        for batch in loader:
+            batch = {k: v.to(device) for k, v in batch.items()}
+            out = self.model(**batch, output_hidden_states=True)
+            token_embeds = out.hidden_states[self.layer_number]
+            embd = self.pooler(token_embeds, batch["attention_mask"])
+            embeddings.append(embd.detach().cpu())
+
+        embeddings = torch.cat(embeddings, dim=0)
+
+        # clean up
+        gc.collect()
+        torch.cuda.empty_cache()
+
+        return embeddings
 
 
 class HFModelWrapper(ModelWrapper):
     """ONLY FOR PRE-TRAINED MODELS"""
+
     def __init__(self, model, tokenizer):
         """"""
         self.checkpoint = model.config.name_or_path
         self.model = model
-        self.tokenizer = tokenizer      
+        self.tokenizer = tokenizer
 
     def encode_dataset(self, data, device):
         """For knn and linear evaluation"""
@@ -61,33 +162,42 @@ class HFModelWrapper(ModelWrapper):
             embedding_cls,
             embedding_sep,
             embedding_av,
-        ) = generate_embeddings(data, 
-                        self.tokenizer, 
-                        self.model, 
-                        device, 
-                        batch_size=256, 
-                        return_seventh = False)
+        ) = generate_embeddings(
+            data,
+            self.tokenizer,
+            self.model,
+            device,
+            batch_size=256,
+            return_seventh=False,
+        )
         return embedding_cls, embedding_sep, embedding_av
 
     def get_outputs(self, input_ids, attention_mask):
         output = self.model(input_ids, attention_mask=attention_mask)[0]
         return output
-    
-    def ST_wrapper(self):
-        ST_model = SentenceTransformer(self.checkpoint)
+
+    def ST_wrapper(self, layer_number=None, eval_rep=None):
+        if layer_number is None:
+            ST_model = SentenceTransformer(self.checkpoint)
+        if layer_number is not None:
+            ST_model = CustomModelMTEBWrapper(
+                self.model, self.tokenizer, layer_number=layer_number, eval_rep=eval_rep
+            )  # CustomModel with encode function ()
         return ST_model
 
 
 class FineTunedHFModelWrapper(HFModelWrapper):
     """FOR HF MODELS THAT ARE ALREADY/GOING TO BE FINE-TUNED"""
-    def __init__(self, model, tokenizer, checkpoint= None):
+
+    def __init__(self, model, tokenizer, checkpoint=None):
         if checkpoint is None:
             checkpoint = "bert-base-uncased"
         self.base_checkpoint = checkpoint
         self.model = model
-        self.tokenizer = tokenizer   
+        self.tokenizer = tokenizer
 
-    def ST_wrapper(self):
+    def SentenceTransformer_wrapper(self):
+        # ENH: this whole wrapping could be sustituted by the CustomModel wrapper that is used to choose a layer, and one could have as default the last layer
         # Create a new SentenceTransformer model
         new_modules = []
 
@@ -111,7 +221,7 @@ class FineTunedHFModelWrapper(HFModelWrapper):
         pooling_model = models.Pooling(
             word_embedding_dimension=self.model.config.hidden_size,
             pooling_mode_cls_token=False,
-            pooling_mode_mean_tokens=True,    # TODO: CHANGE POOLING JENACHDEM
+            pooling_mode_mean_tokens=True,  # TODO: CHANGE POOLING JENACHDEM
             pooling_mode_max_tokens=False,
             pooling_mode_mean_sqrt_len_tokens=False,
         )
@@ -122,6 +232,15 @@ class FineTunedHFModelWrapper(HFModelWrapper):
 
         # Create the new SentenceTransformer model
         ST_model = SentenceTransformer(modules=new_modules)
+        return ST_model
+
+    def ST_wrapper(self, layer_number=None, eval_rep=None):
+        if layer_number is None:
+            ST_model = self.SentenceTransformer_wrapper()
+        if layer_number is not None:
+            ST_model = CustomModelMTEBWrapper(
+                self.model, self.tokenizer, layer_number=layer_number, eval_rep=eval_rep
+            )  # CustomModel with encode() function
         return ST_model
 
 
@@ -144,9 +263,7 @@ class ModelWithProjectionHead(nn.Module):
                 set_active=True,
             )
         else:
-            self.backbone = AutoModel.from_pretrained(
-                checkpoint
-            )  
+            self.backbone = AutoModel.from_pretrained(checkpoint)
 
         # add projection head
         self.projection_head = nn.Sequential(
@@ -160,9 +277,7 @@ class ModelWithProjectionHead(nn.Module):
         pooler : {mean_pool, cls_pool, sep_pool, seventh_pool?}
         """
         # Extract outputs from the body
-        outputs = self.backbone(
-            input_ids=input_ids, attention_mask=attention_mask
-        )[0]
+        outputs = self.backbone(input_ids=input_ids, attention_mask=attention_mask)[0]
 
         # pooling
         h = self.pooler(outputs, attention_mask)
@@ -182,13 +297,13 @@ class ModelWithProjectionHeadWrapper(ModelWrapper):
         """
         self.checkpoint = model.backbone.config.name_or_path
         self.model = model
-        self.tokenizer = tokenizer 
+        self.tokenizer = tokenizer
         self.backbone = model.backbone
 
     def get_outputs(self, input_ids, attention_mask):
         outputs = self.model(input_ids, attention_mask=attention_mask)
         return outputs
-    
+
     def encode_dataset(self, data, device):
         """For knn and linear evaluation.
         It gives back the representation after the backbone, i.e., before the projection head.
@@ -197,35 +312,34 @@ class ModelWithProjectionHeadWrapper(ModelWrapper):
             embedding_cls,
             embedding_sep,
             embedding_av,
-        ) = generate_embeddings(data, 
-                        self.tokenizer, 
-                        self.backbone, 
-                        device, 
-                        batch_size=256, 
-                        return_seventh = False)
+        ) = generate_embeddings(
+            data,
+            self.tokenizer,
+            self.backbone,
+            device,
+            batch_size=256,
+            return_seventh=False,
+        )
         return embedding_cls, embedding_sep, embedding_av
-    
+
     def ST_wrapper(self):
         # this function was not needed so far therefore not implemented
         pass
 
 
-
-
 class EmbeddingOnlyModel(torch.nn.Module):
     """Create a new model with only the embedding layer.
     Valid function for both the layer and the module (04/09/2024)
-    
+
     Parameters
     ----------
     """
+
     def __init__(self, model_name_or_embeddings):
         super().__init__()
         if isinstance(model_name_or_embeddings, str):
             # If a string is provided, load the pretrained model and extract embeddings
-            pretrained_model = AutoModel.from_pretrained(
-                model_name_or_embeddings
-            )
+            pretrained_model = AutoModel.from_pretrained(model_name_or_embeddings)
             self.embeddings = pretrained_model.embeddings.word_embeddings
         else:
             # If embeddings are provided directly, use them
@@ -254,19 +368,17 @@ class EmbeddingOnlyModel(torch.nn.Module):
         return model
 
 
-
 # Q?: is it possible to make this the ST_wrapper function of class above? I think not.
-class MyEmbeddingSentenceModel: 
+class MyEmbeddingSentenceModel:
     """Sentence embedding model using only the embedding layer of a transformer.
     Uses class EmbeddingOnlyModel (see above) and puts it in the format of Sentence Transformers, to be able to evaluate it in the MTEB tasks.
     """
+
     def __init__(self, model, tokenizer, pooler):
         self.tokenizer = tokenizer
         self.model = model
         self.device = (
-            torch.device("cuda")
-            if torch.cuda.is_available()
-            else torch.device("cpu")
+            torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
         )
         self.pooler = pooler
 
@@ -290,14 +402,15 @@ class MyEmbeddingSentenceModel:
         embeddings = []
         with torch.no_grad():
             for batch in loader:
-                batch = {k: v.to(self.device) for k, v in batch.items()} # it used to be device only (not self.device) but I think it only wroked bc of jupyter having device defined somewhere else
+                batch = {
+                    k: v.to(self.device) for k, v in batch.items()
+                }  # it used to be device only (not self.device) but I think it only wroked bc of jupyter having device defined somewhere else
                 outputs = self.model(batch["input_ids"])
                 embdd = self.pooler(outputs, batch["attention_mask"])
                 embeddings.append(embdd.detach().cpu().numpy())
 
         embeddings = np.vstack(embeddings)
-        return embeddings 
-
+        return embeddings
 
 
 class EmbeddingOnlyModelWrapper(ModelWrapper):
@@ -307,43 +420,41 @@ class EmbeddingOnlyModelWrapper(ModelWrapper):
         self.tokenizer = tokenizer
         self.pooler = pooler
 
-
     def get_outputs(self, input_ids, **kwargs):
         """
         **kwargs : attention_mask is also always passed to get_outputs but in this case it is not used (because it is only the embedding layer)
         """
         outputs = self.model(input_ids)
         return outputs
-    
+
     def encode_dataset(self, data, device):
         """For knn and linear evaluation"""
         (
             embedding_cls,
             embedding_sep,
             embedding_av,
-        ) = generate_embeddings_embed_layer(data, 
-                        self.tokenizer, 
-                        self.model, 
-                        device, 
-                        batch_size=256, 
-                        return_seventh = False)
+        ) = generate_embeddings_embed_layer(
+            data,
+            self.tokenizer,
+            self.model,
+            device,
+            batch_size=256,
+            return_seventh=False,
+        )
         return embedding_cls, embedding_sep, embedding_av
 
-    
     def ST_wrapper(self):
-        ST_model = MyEmbeddingSentenceModel(model = self.model,
-                                            tokenizer= self.tokenizer,
-                                            pooler = self.pooler)
+        ST_model = MyEmbeddingSentenceModel(
+            model=self.model, tokenizer=self.tokenizer, pooler=self.pooler
+        )
         return ST_model
-
-
 
 
 # extra function
 def check_models_equal(original_model, loaded_model):
-    """Checks if models have identical parameters. 
+    """Checks if models have identical parameters.
     The == operator does not work because two separately instantiated model objects will always be considered different, even if they have identical parameters.
-    
+
     """
     # Check if state dictionaries are equal
     original_state_dict = original_model.state_dict()
