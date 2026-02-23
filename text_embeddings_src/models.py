@@ -119,12 +119,14 @@ class CustomModelMTEBWrapper:
 
         dataset = datasets.Dataset.from_dict(inputs)
         dataset.set_format(type="torch", output_all_columns=True)
+
+        torch.multiprocessing.set_sharing_strategy("file_system")
         loader = torch.utils.data.DataLoader(
             dataset,
             batch_size=batch_size,
-            num_workers=2, #4,  # 8 or 16,
-            pin_memory=True,  # Important for GPU transfer speed
-            persistent_workers=True,  # Keeps workers alive between epochs
+            num_workers=0,  # 2,
+            pin_memory=False,  # True,  # Important for GPU transfer speed
+            # persistent_workers=True,  # Keeps workers alive between epochs
         )
 
         self.model.to(device)
@@ -135,6 +137,7 @@ class CustomModelMTEBWrapper:
             out = self.model(**batch, output_hidden_states=True)
             token_embeds = out.hidden_states[self.layer_number]
             embd = self.pooler(token_embeds, batch["attention_mask"])
+            embd = torch.nn.functional.normalize(embd, p=2, dim=1)  # ATTEMPT TO FIX
             embeddings.append(embd.detach().cpu())
 
         embeddings = torch.cat(embeddings, dim=0)
@@ -198,6 +201,7 @@ class FineTunedHFModelWrapper(HFModelWrapper):
 
     def SentenceTransformer_wrapper(self):
         # ENH: this whole wrapping could be sustituted by the CustomModel wrapper that is used to choose a layer, and one could have as default the last layer
+        # NOTE: IT SHOULDN'T BE SUBSTITUTED, they are not equivalent and they result in different performances
         # Create a new SentenceTransformer model
         new_modules = []
 
