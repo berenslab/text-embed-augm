@@ -39,7 +39,7 @@ Here is a mapping of the different sections of the paper to the corresponding no
     + 4a (frozen vs. finetuned) : `05`
     + 4b (layer-wise eval kNN): `10`
     + 4c? (layer-wise eval MTEB) : `18`
-    + projection head (#TODO: check that we still make the statement): `07`
+    + projection head : `07`
 - **Appendix**
     + **A1** Hyperparameter exploration : `06`
 
@@ -48,7 +48,7 @@ Here is a mapping of the different sections of the paper to the corresponding no
 
 Here there is a more detailed description on what you can find in the different notebooks in the `scripts/` folder and the scripts in the `text_embeddings_src/` folder.
 
-Scripts in `text-embed-augm/`:
+#### Scripts in `text-embed-augm/`:
 - `data_stuff.py` : data augmentation functions and dataset class.
 - `dim_red.py` : dimensionality reduction functions.
 - `embeddings.py` : functions to compute embeddings with different models, used in model wrappers.
@@ -57,11 +57,12 @@ Scripts in `text-embed-augm/`:
 - `models.py` : Models and model wrappers for different architectures, and utility functions.
 - `plotting.py` : plotting functions.
 - `train_stuff.py` : training loop functions.
+- `load_mteb_scores_utils.py` : utils to load MTEB results.
 
 This code is the refactored version (current) and the old versions of the source code can be found in the `legacy/` folder. They are kept for reproducibility reasons, since notebooks `01-16` in the `scripts/` folder still use some of those functions. Notebooks `17-18` use the refactored code in the main `text_embeddings_src/` folder.
 
 
-Notebooks in `scripts/`:
+#### Notebooks in `scripts/`:
 - `01-rgm-baseline-embeddings-iclr.ipynb` : obtain high-dimensional representations of the ICLR dataset by the baseline models.
 - `02-rgm-baseline-evaluation-iclr.ipynb` : kNN accuracy evaluation of ICLR dataset high-dimensional representations and 2D representations with t-SNE plots.
 - `03-rgm-training-models-iclr.ipynb` : fine-tuning models on the ICLR dataset with cropping augmentation, kNN and linear classification accuracy evaluations, also eval after every batch.
@@ -80,6 +81,7 @@ Notebooks in `scripts/`:
 - `16-rgm-mteb-datasets-tsne.ipynb` : Computing 2D representations and kNN accuracy evaluation of other datasets (Arxiv, Biorxiv, Medrxiv, Reddit, StackExchange).
 - `17-rgm-mteb-eval-batches.ipynb` : Fine-tuning on the ICLR dataset and evaluation of MTEB benchmark after every batch.
 - `18-rgm-mteb-eval-layers.ipynb` : MTEB evaluation of every layer, for both augmentation strategies.
+- `print-results.ipynb` : notebook to print the results of the different experiments in a more organized way, and to generate the tables included in the paper.
 - `matplotlib_style.txt` : matplotlib RC stylefile for the figures in the paper.
 
 
