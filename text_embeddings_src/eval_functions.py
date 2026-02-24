@@ -169,6 +169,12 @@ def MTEBEval(
     # unwrap the dict into the dictionary in the way I want it
     dict_results = dict()
     for task in mteb_results:
-        dict_results[task.task_name] = task.scores["test"][0]["main_score"]
+        for i in range(
+            len(task.scores["test"])
+        ):  # if there are more than one language, save english results
+            if task.scores["test"][i]["languages"] == ["eng-Latn"]:
+                dict_results[task.task_name] = task.scores["test"][i]["main_score"]
+            else:
+                dict_results[task.task_name] = task.scores["test"][0]["main_score"]
 
     return dict_results

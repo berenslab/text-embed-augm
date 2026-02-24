@@ -8,9 +8,15 @@ results/figures/updated_dataset/*
 !results/figures/updated_dataset/final_figures/
 results/figures/updated_dataset/final_figures/*
 !results/figures/updated_dataset/final_figures/last_version/
+results/figures/updated_dataset/final_figures/last_version/figure4*
+results/figures/updated_dataset/final_figures/last_version/figure1_v1*
+results/figures/updated_dataset/final_figures/last_version/figure3_v2*
+!results/figures/updated_dataset/final_figures/last_version/figure4_with_panel_c_v4.png
+!results/figures/updated_dataset/final_figures/last_version/figure4_with_panel_c_v4.pdf
 text_embeddings_src/knn_accuracy_lena.py
-scripts/print-results.ipynb
 scripts/extra_experiments
+scripts/09-rgm-whitening_old.ipynb
+scripts/print-results-sanity-check-mteb.ipynb
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
