@@ -3,11 +3,13 @@ import numpy as np
 import torch
 from tqdm.notebook import tqdm
 
-from text_embeddings_src.train_stuff import mean_pool,sep_pool,cls_pool
-    
+from text_embeddings_src.train_stuff import mean_pool, sep_pool, cls_pool
+
 
 @torch.no_grad()
-def generate_embeddings(abstracts, tokenizer, model, device, batch_size=256, return_seventh = False):
+def generate_embeddings(
+    abstracts, tokenizer, model, device, batch_size=256, return_seventh=False
+):
     """Generate embeddings using BERT-based model.
 
     Parameters
@@ -20,7 +22,7 @@ def generate_embeddings(abstracts, tokenizer, model, device, batch_size=256, ret
         BERT-based model.
     device : str, {"cuda", "cpu"}
         "cuda" if torch.cuda.is_available() else "cpu".
-        
+
     Returns
     -------
     embedding_cls : ndarray
@@ -42,11 +44,11 @@ def generate_embeddings(abstracts, tokenizer, model, device, batch_size=256, ret
     dataset = datasets.Dataset.from_dict(inputs)
     dataset.set_format(type="torch", output_all_columns=True)
     loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, #num_workers=10
+        dataset,
+        batch_size=batch_size,  # num_workers=10
     )
 
-
-    embedding_av  = []
+    embedding_av = []
     embedding_sep = []
     embedding_cls = []
     embedding_7th = []
@@ -57,6 +59,7 @@ def generate_embeddings(abstracts, tokenizer, model, device, batch_size=256, ret
             batch = {k: v.to(device) for k, v in batch.items()}
             out = model(**batch)
             token_embeds = out[0]  # get the last hidden state
+            # ENH: here would come the normalization
             av = mean_pool(token_embeds, batch["attention_mask"])
             sep = sep_pool(token_embeds, batch["attention_mask"])
             cls = cls_pool(token_embeds, batch["attention_mask"])
@@ -66,17 +69,19 @@ def generate_embeddings(abstracts, tokenizer, model, device, batch_size=256, ret
             if return_seventh == True:
                 seventh = token_embeds[:, 7, :]
                 embedding_7th.append(seventh.detach().cpu().numpy())
-    
-    
+
     embedding_av = np.vstack(embedding_av)
     embedding_sep = np.vstack(embedding_sep)
     embedding_cls = np.vstack(embedding_cls)
-    
+
     if return_seventh == True:
         embedding_7th = np.vstack(embedding_7th)
 
-    return (embedding_cls, embedding_sep, embedding_av, embedding_7th) if return_seventh == True else (embedding_cls, embedding_sep, embedding_av)
-
+    return (
+        (embedding_cls, embedding_sep, embedding_av, embedding_7th)
+        if return_seventh == True
+        else (embedding_cls, embedding_sep, embedding_av)
+    )
 
 
 @torch.no_grad()
@@ -160,7 +165,6 @@ def generate_embeddings_embed_layer(
     )
 
 
-
 # TODO: this function has not been adapted to the new code
 @torch.no_grad()
 def generate_embeddings_hidden_state(
@@ -205,9 +209,7 @@ def generate_embeddings_hidden_state(
 
     dataset = datasets.Dataset.from_dict(inputs)
     dataset.set_format(type="torch", output_all_columns=True)
-    loader = torch.utils.data.DataLoader(
-        dataset, batch_size=batch_size, num_workers=10
-    )
+    loader = torch.utils.data.DataLoader(dataset, batch_size=batch_size, num_workers=10)
 
     embedding_av = []
     embedding_sep = []
@@ -242,5 +244,3 @@ def generate_embeddings_hidden_state(
         if return_seventh == True
         else (embedding_cls, embedding_sep, embedding_av)
     )
-
-

@@ -137,7 +137,7 @@ class CustomModelMTEBWrapper:
             out = self.model(**batch, output_hidden_states=True)
             token_embeds = out.hidden_states[self.layer_number]
             embd = self.pooler(token_embeds, batch["attention_mask"])
-            embd = torch.nn.functional.normalize(embd, p=2, dim=1)  # ATTEMPT TO FIX
+            # embd = torch.nn.functional.normalize(embd, p=2, dim=1)  # FIX to results not matching those when using the SentenceTransformer wrapper
             embeddings.append(embd.detach().cpu())
 
         embeddings = torch.cat(embeddings, dim=0)
