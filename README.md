@@ -1,7 +1,7 @@
 # Cropping outperforms dropout as an augmentation strategy for self-supervised training of text embeddings
 ###### Rita González-Márquez, Philipp Berens & Dmitry Kobak
 
-In this repository you can find the code associated to the paper ["Cropping outperforms dropout as an augmentation strategy for training self-supervised text embeddings"](https://arxiv.org/abs/2508.03453).
+In this repository you can find the code associated to the paper ["Cropping outperforms dropout as an augmentation strategy for training self-supervised text embeddings"](https://openreview.net/forum?id=gVRsIh9x7W).
 
 ## How to use this repository
 The notebooks in `scripts/` contain the code to reproduce all the experiments and analyses performed in the paper. The experiments were run in python notebooks that use some helper functions in the `text_embeddings_src/` folder. This was done to make it easier to follow the different steps of the analyses, to be able to visualize intermediate results, and to log hyperparameters used in each experiment directly in the notebook.
@@ -34,12 +34,11 @@ Here is a mapping of the different sections of the paper to the corresponding no
 - **Section 3.3** Representation of a dataset for analysis and visualization
     + **3.3.2** (kNN accuracy & t-SNE) : `01`, `02`, `03`, `11`, `13`, `14` (ICLR); `15` (Arxiv, Biorxiv, Medrxiv, Reddit, StackExchange).
     + **3.3.3** (sentence and domain adaptation) : `03`, `04`
-- **Section 4** SSL without pretraining 
-    + `03`, `14`
-- **Section 5** Representation quality across layers
-    + Fig5a (frozen vs. finetuned) : `05`
-    + Fig5b (layer-wise eval kNN): `10`
-    + Fig5c (layer-wise eval MTEB) : `18`
+- **Section 3.4** (SSL without pretraining) : `03`, `14`
+- **Section 4** Representation quality across layers
+    + 4a (frozen vs. finetuned) : `05`
+    + 4b (layer-wise eval kNN): `10`
+    + 4c (layer-wise eval MTEB) : `18`
     + projection head : `07`
 - **Appendix**
     + **A1** Hyperparameter exploration : `06`
