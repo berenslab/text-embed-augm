@@ -59,15 +59,18 @@ def generate_embeddings(
             batch = {k: v.to(device) for k, v in batch.items()}
             out = model(**batch)
             token_embeds = out[0]  # get the last hidden state
-            # ENH: here would come the normalization
             av = mean_pool(token_embeds, batch["attention_mask"])
+            av = torch.nn.functional.normalize(av, p=2, dim=1)
             sep = sep_pool(token_embeds, batch["attention_mask"])
+            sep = torch.nn.functional.normalize(sep, p=2, dim=1)
             cls = cls_pool(token_embeds, batch["attention_mask"])
+            cls = torch.nn.functional.normalize(cls, p=2, dim=1)
             embedding_av.append(av.detach().cpu().numpy())
             embedding_sep.append(sep.detach().cpu().numpy())
             embedding_cls.append(cls.detach().cpu().numpy())
             if return_seventh == True:
                 seventh = token_embeds[:, 7, :]
+                seventh = torch.nn.functional.normalize(seventh, p=2, dim=1)
                 embedding_7th.append(seventh.detach().cpu().numpy())
 
     embedding_av = np.vstack(embedding_av)
@@ -142,13 +145,17 @@ def generate_embeddings_embed_layer(
             out = model(batch["input_ids"])
             token_embeds = out  # [0]  # get the last hidden state
             av = mean_pool(token_embeds, batch["attention_mask"])
+            av = torch.nn.functional.normalize(av, p=2, dim=1)
             sep = sep_pool(token_embeds, batch["attention_mask"])
+            sep = torch.nn.functional.normalize(sep, p=2, dim=1)
             cls = cls_pool(token_embeds, batch["attention_mask"])
+            cls = torch.nn.functional.normalize(cls, p=2, dim=1)
             embedding_av.append(av.detach().cpu().numpy())
             embedding_sep.append(sep.detach().cpu().numpy())
             embedding_cls.append(cls.detach().cpu().numpy())
             if return_seventh == True:
                 seventh = token_embeds[:, 7, :]
+                seventh = torch.nn.functional.normalize(seventh, p=2, dim=1)
                 embedding_7th.append(seventh.detach().cpu().numpy())
 
     embedding_av = np.vstack(embedding_av)
@@ -165,7 +172,7 @@ def generate_embeddings_embed_layer(
     )
 
 
-# TODO: this function has not been adapted to the new code
+# TODO: this function has not been adapted to the new code. Add normalization when adapting it.
 @torch.no_grad()
 def generate_embeddings_hidden_state(
     layer_number,

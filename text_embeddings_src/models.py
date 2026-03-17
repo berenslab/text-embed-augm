@@ -98,11 +98,6 @@ class CustomModelMTEBWrapper:
         Returns:
             The encoded sentences.
         """
-        # print(len(inputs))
-        # print(type(inputs))
-        # print(kwargs.keys())
-        # print(kwargs.values())
-        # print(kwargs["batch_size"])
 
         device = "cuda" if torch.cuda.is_available() else "cpu"
 
@@ -137,7 +132,9 @@ class CustomModelMTEBWrapper:
             out = self.model(**batch, output_hidden_states=True)
             token_embeds = out.hidden_states[self.layer_number]
             embd = self.pooler(token_embeds, batch["attention_mask"])
-            # embd = torch.nn.functional.normalize(embd, p=2, dim=1)  # FIX to results not matching those when using the SentenceTransformer wrapper
+            embd = torch.nn.functional.normalize(
+                embd, p=2, dim=1
+            )  # FIX for the difference with SentenceTransformers
             embeddings.append(embd.detach().cpu())
 
         embeddings = torch.cat(embeddings, dim=0)
@@ -411,6 +408,9 @@ class MyEmbeddingSentenceModel:
                 }  # it used to be device only (not self.device) but I think it only wroked bc of jupyter having device defined somewhere else
                 outputs = self.model(batch["input_ids"])
                 embdd = self.pooler(outputs, batch["attention_mask"])
+                embd = torch.nn.functional.normalize(
+                    embd, p=2, dim=1
+                )  # normalizes embeddings
                 embeddings.append(embdd.detach().cpu().numpy())
 
         embeddings = np.vstack(embeddings)
